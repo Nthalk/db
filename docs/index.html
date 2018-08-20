@@ -1,0 +1,95 @@
+<html>
+<head>
+  <script src="//unpkg.com/vue@2.5.17/dist/vue.js"></script>
+  <script src="vendor/vue-vanilla/1.1.6/import-vue-component.min.js"></script>
+  <link rel="stylesheet" href="//unpkg.com/picnic@6.5.0/picnic.min.css">
+  <link href="//fonts.googleapis.com/icon?family=Material+Icons"
+        rel="stylesheet">
+</head>
+<body>
+<div id="app">
+  <nav>
+    <a href="#" class="brand">
+      <span>DataSet</span>
+    </a>
+    <!--<input id="bmenub" type="checkbox" class="show">-->
+    <!--<label for="bmenub" class="burger pseudo button">&#8801;</label>-->
+    <!--<div class="menu">-->
+    <!--<a href="#" class="pseudo button icon-picture">Demo</a>-->
+    <!--<a href="#" class="button icon-puzzle">Plugins</a>-->
+    <!--</div>-->
+  </nav>
+  <main>
+    <section class="flex four" style="margin:0 auto; margin-top:80px;max-width:960px; width:90%;">
+      <!--<aside class="full none fifth-1000">-->
+      <!--<div>-->
+      <!--<a class="pseudo button">Whattt?</a>-->
+      <!--</div>-->
+      <!--</aside>-->
+      <article class="full">
+        <h1>DataSet</h1>
+        <p>
+          DataSet is a library for wrapping, paging, searching, and transforming raw sql backed
+          queries
+          that you want to expose for a service or ui layer.
+        </p>
+
+        <h2>Installation</h2>
+        <code-snippet :code="codeSamples.pom" v-if="codeSamples.pom">
+        </code-snippet>
+
+        <h2>Usage</h2>
+        <code-snippet :code="codeSamples.usage" v-if="codeSamples.usage">
+        </code-snippet>
+
+        <h2>Tests</h2>
+        <code-snippet :code="codeSamples.test" v-if="codeSamples.test">
+        </code-snippet>
+      </article>
+    </section>
+  </main>
+</div>
+<script>
+  importVueComponent("code-snippet");
+  var app = new Vue({
+    el: "#app",
+    data: {
+      codeSamples: {
+        test: null,
+        pom: null,
+        usage: null
+      }
+    },
+    mounted: function () {
+      var self = this;
+      fetch(
+          "https://raw.githubusercontent.com/Nthalk/db/master/src/test/java/com/iodesystems/db/DbTest.java").then(
+          function (r) {
+            r.text().then(function (text) {
+              self.codeSamples.test = text;
+            });
+          });
+
+      fetch(
+          "https://raw.githubusercontent.com/Nthalk/db/master/pom.xml").then(
+          function (r) {
+            r.text().then(function (text) {
+
+              self.codeSamples.pom = "<dependency>\n" +
+                  "  " + text.substr(text.indexOf("<groupId>"),
+                      text.indexOf("</version>") + "</version>".length - text.indexOf("<groupId>"))
+                  + "\n</dependency>";
+            });
+          });
+      fetch(
+          "https://raw.githubusercontent.com/Nthalk/db/master/src/test/java/com/iodesystems/db/UsageTest.java").then(
+          function (r) {
+            r.text().then(function (text) {
+              self.codeSamples.usage = text;
+            });
+          });
+    }
+  })
+</script>
+</body>
+</html>
