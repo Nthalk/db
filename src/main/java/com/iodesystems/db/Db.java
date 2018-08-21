@@ -3,7 +3,6 @@ package com.iodesystems.db;
 import com.iodesystems.db.data.DataSet;
 import com.iodesystems.db.data.ParamaterizedStatement;
 import com.iodesystems.db.data.Record;
-import com.iodesystems.db.data.RecordMapper;
 import com.iodesystems.db.errors.DbException;
 import com.iodesystems.db.errors.RollbackException;
 import com.iodesystems.db.jdbc.SingleUnclosableConnectionDataSource;
@@ -12,7 +11,7 @@ import com.iodesystems.db.logic.Transactional;
 import com.iodesystems.db.logic.TransactionalResult;
 import com.iodesystems.db.query.ParamaterizedSqlExecutor;
 import com.iodesystems.db.query.Params;
-import com.iodesystems.db.query.ParamsFactory;
+import com.iodesystems.db.query.ParamsConfigurer;
 import com.iodesystems.db.query.QueryContext;
 import com.iodesystems.db.query.QueryContextFactory;
 import java.sql.CallableStatement;
@@ -130,13 +129,13 @@ public class Db {
     return transactionResult(dataSource, transactionalResult);
   }
 
-  public void execute(String sql, ParamsFactory paramsFactory) {
+  public void execute(String sql, ParamsConfigurer paramsConfigurer) {
     try (Connection connection = dataSource.getConnection()) {
       try (PreparedStatement preparedStatement =
           ParamaterizedSqlExecutor.prepareStatement(
               connection,
               sql,
-              paramsFactory.create(new Params(0)))) {
+              paramsConfigurer.configure(new Params(0)))) {
         preparedStatement.execute();
       }
     } catch (SQLException e) {

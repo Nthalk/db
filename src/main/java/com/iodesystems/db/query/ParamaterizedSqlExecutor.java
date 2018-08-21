@@ -37,7 +37,9 @@ public class ParamaterizedSqlExecutor {
       ParamaterizedSqlExecutor paramaterizedSqlExecutor = new ParamaterizedSqlExecutor(sql);
       PreparedStatement preparedStatement = connection
           .prepareStatement(paramaterizedSqlExecutor.sql);
-      paramaterizedSqlExecutor.populateStatement(preparedStatement, params);
+      if (params != null) {
+        paramaterizedSqlExecutor.populateStatement(preparedStatement, params);
+      }
       return preparedStatement;
     } catch (SQLException e) {
       throw new DbException(e);

@@ -18,7 +18,6 @@ import org.junit.Test;
 
 public class UsageTest {
 
-
   @Test
   public void testUsage() {
     Db db = new Db(dataSource());
@@ -44,21 +43,25 @@ public class UsageTest {
     /**
      * Sometimes you need to loop over a statement to insert data
      */
-    ParamaterizedStatement prepare = db.prepare(""
+    try (ParamaterizedStatement prepare = db.prepare(""
         + "INSERT INTO MY_TABLE "
         + "(NAME, VALUE, EXTRA) "
         + "VALUES "
-        + "(:name, :value, :extra)");
-    prepare
-        .execute(p -> p
-            .set("name", "Steve")
-            .set("value", 3)
-            .set("extra", null))
-        .execute(p -> p
-            .set("name", "Dessi")
-            .set("value", 30000)
-            .set("extra", "Doggo"))
-        .close();
+        + "(:name, :value, :extra)")) {
+
+      int insertCount = prepare.execute(p -> p
+          .set("name", "Steve")
+          .set("value", 3)
+          .set("extra", null));
+      assertEquals(1, insertCount);
+
+      int updated = prepare.add(p -> p
+          .set("name", "Dessi")
+          .set("value", 30000)
+          .set("extra", "Doggo"))
+          .execute();
+      assertEquals(1, updated);
+    }
 
     /**
      * Searchable, sortable, parameterized query with a transformed DataSet
