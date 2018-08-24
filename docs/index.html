@@ -57,7 +57,7 @@
     mounted: function () {
       var self = this;
       fetch(
-          "https://raw.githubusercontent.com/Nthalk/db/master/src/test/java/com/iodesystems/db/DbTest.java").then(
+          "https://raw.githubusercontent.com/Nthalk/db/master/db/src/test/java/com/iodesystems/db/DbTest.java").then(
           function (r) {
             r.text().then(function (text) {
               self.codeSamples.test = text;
@@ -76,7 +76,7 @@
             });
           });
       fetch(
-          "https://raw.githubusercontent.com/Nthalk/db/master/src/test/java/com/iodesystems/db/UsageTest.java").then(
+          "https://raw.githubusercontent.com/Nthalk/db/master/db/src/test/java/com/iodesystems/db/UsageTest.java").then(
           function (r) {
             r.text().then(function (text) {
               self.codeSamples.usage = text;
