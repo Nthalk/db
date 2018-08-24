@@ -24,7 +24,7 @@ public class DataSet<T> {
   private final QueryContext queryContext;
   private final RecordMapper<T> recordLoader;
   private final List<String> searches;
-  private final List<Ordering> orderings;
+  private final List<Ordering> ordering;
   private final int page;
   private final int pageSize;
 
@@ -35,14 +35,28 @@ public class DataSet<T> {
       int page,
       int pageSize,
       List<String> searches,
-      List<Ordering> orderings) {
+      List<Ordering> ordering) {
     this.dataSource = dataSource;
     this.queryContext = queryContext;
     this.recordLoader = recordLoader;
     this.page = page;
     this.pageSize = pageSize;
     this.searches = searches;
-    this.orderings = orderings;
+    this.ordering = ordering;
+  }
+
+  public List<Ordering> getOrdering() {
+    return ordering;
+  }
+
+  public DataSet(DataSet<T> toClone) {
+    this(toClone.dataSource,
+        toClone.queryContext,
+        toClone.recordLoader,
+        toClone.page,
+        toClone.pageSize,
+        new ArrayList<>(toClone.searches),
+        new ArrayList<>(toClone.ordering));
   }
 
   public DataSet(DataSource dataSource, QueryContext queryContext) {
@@ -75,7 +89,7 @@ public class DataSet<T> {
   }
 
   public SearchContext getSearchContext() {
-    return new SearchContext(queryContext, searches, orderings, page, pageSize);
+    return new SearchContext(queryContext, searches, ordering, page, pageSize);
   }
 
   public void stream(Handler<T> handler) {
@@ -109,12 +123,12 @@ public class DataSet<T> {
         page,
         pageSize,
         searches,
-        orderings);
+        ordering);
   }
 
   public <U> DataSet<U> load(RecordMapper<U> recordMapper) {
     return new DataSet<>(
-        dataSource, queryContext, recordMapper, page, pageSize, searches, orderings);
+        dataSource, queryContext, recordMapper, page, pageSize, searches, ordering);
   }
 
   public List<T> getItems() {
@@ -127,7 +141,7 @@ public class DataSet<T> {
     List<String> searches = new ArrayList<>(this.searches);
     searches.add(search);
     return new DataSet<>(
-        dataSource, queryContext, recordLoader, page, pageSize, searches, orderings);
+        dataSource, queryContext, recordLoader, page, pageSize, searches, ordering);
   }
 
   public DataSet<T> order(String column, Sort direction) {
@@ -135,7 +149,7 @@ public class DataSet<T> {
   }
 
   public DataSet<T> order(Ordering ordering, Ordering... more) {
-    List<Ordering> orderings = new ArrayList<>(this.orderings);
+    List<Ordering> orderings = new ArrayList<>(this.ordering);
     orderings.add(ordering);
     orderings.addAll(Arrays.asList(more));
     return new DataSet<>(
@@ -144,7 +158,7 @@ public class DataSet<T> {
 
   public DataSet<T> page(int page, int pageSize) {
     return new DataSet<>(
-        dataSource, queryContext, recordLoader, page, pageSize, searches, orderings);
+        dataSource, queryContext, recordLoader, page, pageSize, searches, ordering);
   }
 
   public DataSet<T> nextPage() {
@@ -176,7 +190,7 @@ public class DataSet<T> {
   }
 
   public DataSet<T> order(List<Ordering> orderings) {
-    List<Ordering> newOrderings = new ArrayList<>(this.orderings);
+    List<Ordering> newOrderings = new ArrayList<>(this.ordering);
     newOrderings.addAll(orderings);
     return new DataSet<>(
         dataSource, queryContext, recordLoader, page, pageSize, searches, newOrderings);

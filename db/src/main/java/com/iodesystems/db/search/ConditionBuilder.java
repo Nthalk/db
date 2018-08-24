@@ -26,7 +26,7 @@ public class ConditionBuilder {
   }
 
   public String field() {
-    return conditionContext.getTarget();
+    return '"' + conditionContext.getTarget() + '"';
   }
 
   public String term() {

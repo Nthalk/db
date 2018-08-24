@@ -2,6 +2,7 @@ package com.iodesystems.db.query;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class Params {
 
@@ -30,5 +31,9 @@ public class Params {
 
   public Object get(String param) {
     return source.get(param);
+  }
+
+  public Set<String> keys() {
+    return source.keySet();
   }
 }

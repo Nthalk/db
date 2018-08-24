@@ -127,7 +127,11 @@ public class RecordCursor {
     try {
       return resultSet.getBoolean(fieldIndex + 1);
     } catch (SQLException e) {
-      throw new DbException(e);
+      try {
+        return ValueConverter.convert(resultSet.getObject(fieldIndex + 1), Boolean.class);
+      } catch (SQLException ignore) {
+        throw new DbException(e);
+      }
     }
   }
 

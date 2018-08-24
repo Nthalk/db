@@ -129,24 +129,24 @@ public class Db {
     return transactionResult(dataSource, transactionalResult);
   }
 
-  public void execute(String sql, ParamsConfigurer paramsConfigurer) {
+  public int execute(String sql, ParamsConfigurer paramsConfigurer) {
     try (Connection connection = dataSource.getConnection()) {
       try (PreparedStatement preparedStatement =
           ParamaterizedSqlExecutor.prepareStatement(
               connection,
               sql,
               paramsConfigurer.configure(new Params(0)))) {
-        preparedStatement.execute();
+        return preparedStatement.executeUpdate();
       }
     } catch (SQLException e) {
       throw new DbException(e);
     }
   }
 
-  public void execute(String sql) {
+  public int execute(String sql) {
     try (Connection connection = dataSource.getConnection()) {
       try (CallableStatement preparedStatement = connection.prepareCall(sql)) {
-        preparedStatement.execute();
+        return preparedStatement.executeUpdate();
       }
     } catch (SQLException e) {
       throw new DbException(e);
