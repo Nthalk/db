@@ -6,7 +6,7 @@ import com.iodesystems.db.data.DataSet;
 import com.iodesystems.db.data.Page;
 import com.iodesystems.db.data.ParamaterizedStatement;
 import com.iodesystems.db.data.Query;
-import com.iodesystems.db.data.Record;
+import com.iodesystems.db.data.TypedDataSet;
 import com.iodesystems.db.query.Column;
 import com.iodesystems.db.query.Ordering;
 import com.iodesystems.db.query.Sort;
@@ -24,7 +24,7 @@ public class UsageTest {
 
     db.execute("DELETE FROM MY_TABLE");
 
-    DataSet<Record> dataSet = db.query("SELECT * FROM MY_TABLE");
+    DataSet dataSet = db.query("SELECT * FROM MY_TABLE");
     assertEquals(0, dataSet.count());
 
     /**
@@ -66,7 +66,7 @@ public class UsageTest {
     /**
      * Searchable, sortable, parameterized query with a transformed DataSet
      */
-    DataSet<String> searchableDataSet = db
+    TypedDataSet<String> searchableDataSet = db
         .query("SELECT * FROM MY_TABLE WHERE :INNER_PARAM = 0", queryBuilder -> queryBuilder
             // Build a column
             .column("NAME", columnBuilder -> columnBuilder
@@ -79,7 +79,7 @@ public class UsageTest {
             .param("INNER_PARAM")
             // Set a default
             .set("INNER_PARAM", 0))
-        .load(recordCursor -> recordCursor.getString("NAME"));
+        .map(recordCursor -> recordCursor.getString("NAME"));
 
     assertEquals(Arrays.asList("Carl", "Steve", "Dessi"), searchableDataSet.getItems());
     assertEquals(Arrays.asList("Dessi"), searchableDataSet.search("name:Dessi").getItems());
@@ -96,14 +96,14 @@ public class UsageTest {
     /**
      * DataSets are pageable
      */
-    DataSet<String> page = searchableDataSet.page(0, 2);
+    TypedDataSet<String> page = searchableDataSet.page(0, 2);
     assertEquals(Arrays.asList("Carl", "Steve"), page.getItems());
     assertEquals(Arrays.asList("Dessi"), page.nextPage().getItems());
 
     /**
      * You can retrieve column info about a DataSet
      */
-    List<Column> columns = searchableDataSet.getColumns();
+    List<Column<?>> columns = searchableDataSet.getUnderlyingColumns();
     assertEquals(3, columns.size());
     assertEquals("NAME", columns.get(0).getName());
     assertEquals("VALUE", columns.get(1).getName());
@@ -119,7 +119,7 @@ public class UsageTest {
     query.setPageSize(2);
     query.setOrderings(Arrays.asList(new Ordering("name", Sort.DESC)));
 
-    Page<String> simplePage = searchableDataSet.apply(query);
+    Page<String> simplePage = searchableDataSet.query(query);
     List<String> items = simplePage.getItems();
 
   }

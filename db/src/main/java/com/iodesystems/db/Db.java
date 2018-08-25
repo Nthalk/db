@@ -2,7 +2,6 @@ package com.iodesystems.db;
 
 import com.iodesystems.db.data.DataSet;
 import com.iodesystems.db.data.ParamaterizedStatement;
-import com.iodesystems.db.data.Record;
 import com.iodesystems.db.errors.DbException;
 import com.iodesystems.db.errors.RollbackException;
 import com.iodesystems.db.jdbc.SingleUnclosableConnectionDataSource;
@@ -25,10 +24,6 @@ public class Db {
 
   private final DataSource dataSource;
 
-  public DataSource getDataSource() {
-    return dataSource;
-  }
-
   public Db(DataSource dataSource) {
     this.dataSource = dataSource;
   }
@@ -39,6 +34,25 @@ public class Db {
       transactional.run(c);
       return null;
     });
+  }
+
+  public static <T> T transactionResult(
+      DataSource dataSource, TransactionalResult<T> transactionalResult) throws RollbackException {
+    Db db = new Db(dataSource).transactionStart();
+    try {
+      return transactionalResult.run(db);
+    } catch (RollbackException e) {
+      db = db.transactionRollback();
+      throw e;
+    } finally {
+      if (db.dataSource instanceof TransactionalDataSource) {
+        db.transactionEnd();
+      }
+    }
+  }
+
+  public DataSource getDataSource() {
+    return dataSource;
   }
 
   public Db transactionStart() {
@@ -83,37 +97,22 @@ public class Db {
     }
   }
 
-  public static <T> T transactionResult(
-      DataSource dataSource, TransactionalResult<T> transactionalResult) throws RollbackException {
-    Db db = new Db(dataSource).transactionStart();
-    try {
-      return transactionalResult.run(db);
-    } catch (RollbackException e) {
-      db = db.transactionRollback();
-      throw e;
-    } finally {
-      if (db.dataSource instanceof TransactionalDataSource) {
-        db.transactionEnd();
-      }
-    }
-  }
-
   public void transaction(Transactional transactional) throws RollbackException {
     transaction(dataSource, transactional);
   }
 
-  public DataSet<Record> query(String sql, QueryContextFactory queryContextFactory) {
-    return new DataSet<>(dataSource, queryContextFactory.queryContext(new QueryContext(sql)));
+  public DataSet query(String sql, QueryContextFactory queryContextFactory) {
+    return new DataSet(dataSource, queryContextFactory.queryContext(new QueryContext(sql)));
   }
 
-  public DataSet<Record> query(Connection connection, String sql,
+  public DataSet query(Connection connection, String sql,
       QueryContextFactory queryContextFactory) {
-    return new DataSet<>(new SingleUnclosableConnectionDataSource(dataSource, connection),
+    return new DataSet(new SingleUnclosableConnectionDataSource(dataSource, connection),
         queryContextFactory.queryContext(new QueryContext(sql)));
   }
 
-  public DataSet<Record> query(String sql) {
-    return new DataSet<>(dataSource, new QueryContext(sql));
+  public DataSet query(String sql) {
+    return new DataSet(dataSource, new QueryContext(sql));
   }
 
   public ParamaterizedStatement prepare(String sql) {

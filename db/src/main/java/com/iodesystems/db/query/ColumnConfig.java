@@ -7,9 +7,15 @@ public class ColumnConfig {
   private final String name;
   private ConditionFactory search;
   private boolean orderable;
+  private Class type = Object.class;
 
   public ColumnConfig(String name) {
     this.name = name;
+  }
+
+  public ColumnConfig type(Class type) {
+    this.type = type;
+    return this;
   }
 
   public ColumnConfig orderable(boolean orderable) {
@@ -27,6 +33,6 @@ public class ColumnConfig {
   }
 
   public Column create() {
-    return new Column(orderable, search, name);
+    return new Column(orderable, search, name, type);
   }
 }

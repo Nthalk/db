@@ -6,6 +6,7 @@ import static org.junit.Assert.assertEquals;
 import com.iodesystems.db.data.DataSet;
 import com.iodesystems.db.data.Record;
 import com.iodesystems.db.data.RecordCursor;
+import com.iodesystems.db.data.TypedDataSet;
 import com.iodesystems.db.errors.RollbackException;
 import com.iodesystems.db.query.ColumnConfig;
 import com.iodesystems.db.query.Ordering;
@@ -62,7 +63,7 @@ public class DbTest {
 
   @Test
   public void testSearchOr() {
-    DataSet<Record> searchableDataSet =
+    DataSet searchableDataSet =
         db.query("" +
             "SELECT * FROM T1 WHERE :O = 1", s -> s
             .column("NAME", c -> c.search((b) -> b.field() + "  = " + b.param()))
@@ -96,10 +97,9 @@ public class DbTest {
 
   @Test
   public void testMap() {
-    DataSet<Record> map =
-        db.query("" + "SELECT * FROM T1", s -> s.column("VALUE", ColumnConfig::orderable))
-            .order("VALUE", Sort.DESC)
-            .map(r -> r);
+    db.query("" + "SELECT * FROM T1", s -> s.column("VALUE", ColumnConfig::orderable))
+        .order("VALUE", Sort.DESC)
+        .map(RecordCursor::getRecord);
   }
 
   @Test
@@ -108,7 +108,7 @@ public class DbTest {
         new Integer[]{3, 2, 1},
         db.query("" + "SELECT * FROM T1", s -> s.column("VALUE", ColumnConfig::orderable))
             .order("VALUE", Sort.DESC)
-            .load(this::testItem)
+            .map(this::testItem)
             .map(i -> i.getValue().intValue())
             .getItems()
             .toArray());
@@ -117,7 +117,7 @@ public class DbTest {
         new Integer[]{1, 2, 3},
         db.query("" + "SELECT * FROM T1", s -> s.column("VALUE", ColumnConfig::orderable))
             .order("VALUE", Sort.ASC)
-            .load(this::testItem)
+            .map(this::testItem)
             .map(i -> i.getValue().intValue())
             .getItems()
             .toArray());
@@ -149,7 +149,7 @@ public class DbTest {
 
   @Test
   public void testSearchContext() {
-    DataSet<Record> searchableDataSet =
+    DataSet searchableDataSet =
         db.query("" +
             "SELECT * FROM T1 WHERE :O = 1", s -> s
             .set("O", 1)
@@ -160,7 +160,7 @@ public class DbTest {
 
   @Test
   public void testSearch() {
-    DataSet<Record> searchableDataSet =
+    DataSet searchableDataSet =
         db.query("" +
             "SELECT * FROM T1 WHERE :O = 1", s -> s
             .set("O", 1)
@@ -206,9 +206,9 @@ public class DbTest {
 
   @Test
   public void test() {
-    DataSet<Record> simpleRecords = db.query("SELECT * FROM T1");
+    DataSet simpleRecords = db.query("SELECT * FROM T1");
     List<Record> simpleRecordItems = simpleRecords.getItems();
-    DataSet<Record> page = simpleRecords.page(0, 2);
+    DataSet page = simpleRecords.page(0, 2);
     List<Record> page1 = page.getItems();
     assertEquals(2, page1.size());
     assertEquals(BigDecimal.ONE, page1.get(0).getBigDecimal("VALUE"));
@@ -217,24 +217,24 @@ public class DbTest {
     assertEquals(2, page1.size());
     assertEquals(new BigDecimal(3), page2.get(0).getBigDecimal("VALUE"));
 
-    DataSet<TestItem> mappedDataSet = db.query("SELECT * FROM T1").load(this::testItem);
+    TypedDataSet<TestItem> mappedDataSet = db.query("SELECT * FROM T1").map(this::testItem);
     List<TestItem> mappedItems = mappedDataSet.getItems();
     assertEquals(3, mappedItems.size());
     assertEquals(new BigDecimal(1), mappedItems.get(0).getValue());
     assertEquals(new BigDecimal(2), mappedItems.get(1).getValue());
     assertEquals(new BigDecimal(3), mappedItems.get(2).getValue());
 
-    DataSet<Integer> query =
+    TypedDataSet<Integer> query =
         db.query(""
             + "SELECT 3 VALUE FROM DUAL WHERE :V = 1", q -> q
             .set("V", 1)
             .param("S")
             .column(
                 "VALUE", c -> c.search(b -> b.field() + " = " + b.param()).orderable()))
-            .load(r -> 1);
-    DataSet<Integer> query2 = query.search("eee");
-    DataSet<Integer> query3 = query.order(new Ordering("VALUE", Sort.DESC));
-    DataSet<Integer> query4 = query.page(0, 50);
+            .map(r -> 1);
+    TypedDataSet<Integer> query2 = query.search("eee");
+    TypedDataSet<Integer> query3 = query.order(new Ordering("VALUE", Sort.DESC));
+    TypedDataSet<Integer> query4 = query.page(0, 50);
   }
 
   private TestItem testItem(RecordCursor r) {
