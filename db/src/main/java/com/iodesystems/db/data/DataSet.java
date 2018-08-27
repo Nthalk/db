@@ -150,11 +150,17 @@ public class DataSet {
         } catch (ClassNotFoundException e) {
           // Class not found
         }
-        Column<?> column = new Column<>(
-            false,
-            null,
-            columnName,
-            columnClass);
+        Column<?> column = queryContext.getColumn(columnName.toLowerCase());
+        if (column == null) {
+          column = new Column<>(
+              false,
+              null,
+              columnName,
+              columnClass);
+        } else {
+          column = new Column<>(column.getOrderable(), column.getSearch(), column.getName(),
+              column.getColumnClass());
+        }
         columns.add(column);
       }
       return columns;
