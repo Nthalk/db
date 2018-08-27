@@ -28,6 +28,19 @@ public class TypedDataSet<T> {
     return dataSet.getPageSize();
   }
 
+  public long count() {
+    return dataSet.count();
+  }
+
+  public T first() {
+    List<T> items = page(0, 1).getItems();
+    if (items.isEmpty()) {
+      return null;
+    } else {
+      return items.get(0);
+    }
+  }
+
   public List<T> getItems() {
     List<T> items = new ArrayList<>();
     dataSet.stream(r -> items.add(mapper.map(r)));
@@ -53,6 +66,14 @@ public class TypedDataSet<T> {
 
   public List<Column<?>> getUnderlyingColumns() {
     return dataSet.getColumns();
+  }
+
+  public TypedDataSet<T> order(List<Ordering> orderings) {
+    return new TypedDataSet<>(dataSet.order(orderings), mapper);
+  }
+
+  public List<Ordering> getOrdering() {
+    return dataSet.getOrdering();
   }
 
   public Page<T> query(Query query) {
