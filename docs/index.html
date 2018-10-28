@@ -27,18 +27,6 @@
           queries
           that you want to expose for a service or ui layer.
         </p>
-
-        <h2>Installation</h2>
-        <code-snippet :code="codeSamples.pom" v-if="codeSamples.pom">
-        </code-snippet>
-
-        <h2>Usage</h2>
-        <code-snippet :code="codeSamples.usage" v-if="codeSamples.usage">
-        </code-snippet>
-
-        <h2>Tests</h2>
-        <code-snippet :code="codeSamples.test" v-if="codeSamples.test">
-        </code-snippet>
       </article>
     </section>
   </main>
@@ -56,32 +44,32 @@
     },
     mounted: function () {
       var self = this;
-      fetch(
-          "https://raw.githubusercontent.com/Nthalk/db/master/db/src/test/java/com/iodesystems/db/DbTest.java").then(
-          function (r) {
-            r.text().then(function (text) {
-              self.codeSamples.test = text;
-            });
-          });
-
-      fetch(
-          "https://raw.githubusercontent.com/Nthalk/db/master/pom.xml").then(
-          function (r) {
-            r.text().then(function (text) {
-
-              self.codeSamples.pom = "<dependency>\n" +
-                  "  " + text.substr(text.indexOf("<groupId>"),
-                      text.indexOf("</version>") + "</version>".length - text.indexOf("<groupId>"))
-                  + "\n</dependency>";
-            });
-          });
-      fetch(
-          "https://raw.githubusercontent.com/Nthalk/db/master/db/src/test/java/com/iodesystems/db/UsageTest.java").then(
-          function (r) {
-            r.text().then(function (text) {
-              self.codeSamples.usage = text;
-            });
-          });
+      // fetch(
+      //     "https://raw.githubusercontent.com/Nthalk/db/master/db/src/test/java/com/iodesystems/db/DbTest.java").then(
+      //     function (r) {
+      //       r.text().then(function (text) {
+      //         self.codeSamples.test = text;
+      //       });
+      //     });
+      //
+      // fetch(
+      //     "https://raw.githubusercontent.com/Nthalk/db/master/pom.xml").then(
+      //     function (r) {
+      //       r.text().then(function (text) {
+      //         self.codeSamples.pom = "<dependency>\n" +
+      //             "  <groupId>com.iodesystems.db</groupId>\n" + text.substr(
+      //                 text.indexOf("<version>"),
+      //                 text.indexOf("</version>") + "</version>".length - text.indexOf("<groupId>"))
+      //             + "\n</dependency>";
+      //       });
+      //     });
+      // fetch(
+      //     "https://raw.githubusercontent.com/Nthalk/db/master/db/src/test/java/com/iodesystems/db/UsageTest.java").then(
+      //     function (r) {
+      //       r.text().then(function (text) {
+      //         self.codeSamples.usage = text;
+      //       });
+      //     });
     }
   })
 </script>
