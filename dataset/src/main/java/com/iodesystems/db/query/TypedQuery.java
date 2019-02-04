@@ -1,19 +1,21 @@
 package com.iodesystems.db.query;
 
+import com.iodesystems.db.logic.Converter;
+import com.iodesystems.db.logic.Handler;
+import com.iodesystems.db.query.Order.Direction;
+import com.iodesystems.db.query.configuration.FieldConfiguration;
+import com.iodesystems.db.search.SearchConditionProvider;
+import com.iodesystems.db.search.SearchParser;
+import com.iodesystems.db.search.SearchTableConditionProvider;
+import com.iodesystems.db.search.errors.InvalidSearchStringException;
+import com.iodesystems.db.search.errors.SneakyInvalidSearchStringException;
+import com.iodesystems.db.search.model.Conjunction;
+import com.iodesystems.db.search.model.Term;
+import com.iodesystems.db.search.model.TermValue;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import com.iodesystems.db.logic.Converter;
-import com.iodesystems.db.logic.Handler;
-import com.iodesystems.db.query.Order.Direction;
-import com.iodesystems.db.search.SearchConditionProvider;
-import com.iodesystems.db.search.SearchFieldConditionProvider;
-import com.iodesystems.db.search.SearchParser;
-import com.iodesystems.db.search.SearchTableConditionProvider;
-import com.iodesystems.db.search.model.SearchTerm;
-import com.iodesystems.db.search.model.SearchTermGroup;
-import com.iodesystems.db.search.model.TargetedSearch;
 import org.jooq.Condition;
 import org.jooq.Cursor;
 import org.jooq.DSLContext;
@@ -37,7 +39,7 @@ public class TypedQuery<T extends Table<R>, R extends Record, M> implements Resu
   private final RecordMapper<R, M> mapper;
   private final List<SortField<?>> order;
   private final Map<String, Field<?>> fields;
-  private final Map<String, TargetedSearch> searches;
+  private final Map<String, SearchConditionProvider> searches;
   private final List<String> searchesToApply;
 
   public TypedQuery(DSLContext db, T table, RecordMapper<R, M> mapper) {
@@ -91,7 +93,7 @@ public class TypedQuery<T extends Table<R>, R extends Record, M> implements Resu
       RecordMapper<R, M> mapper,
       List<SortField<?>> order,
       Map<String, Field<?>> fields,
-      Map<String, TargetedSearch> searches,
+      Map<String, SearchConditionProvider> searches,
       List<String> searchesToApply) {
     this.db = db;
     this.table = table;
@@ -110,40 +112,26 @@ public class TypedQuery<T extends Table<R>, R extends Record, M> implements Resu
     return new TypedQuery<>(db, select.asTable(), r -> r);
   }
 
+  public <T> FieldConfiguration<T> field(org.jooq.Field<T> field) {
+    return new FieldConfiguration<>(this, field.getName(), field);
+  }
+
+  public <T> FieldConfiguration<T> field(String name, org.jooq.Field<T> field) {
+    return new FieldConfiguration<>(this, name, field);
+  }
+
+  public <T> FieldConfiguration<T> field(String name, Field<T> field) {
+    fields.put(name.toLowerCase(), field);
+    return new FieldConfiguration<>(this, name, field.getField(), false);
+  }
+
   @Override
   public String toString() {
     return query().toString();
   }
 
-  public <F> TypedQuery<T, R, M> field(
-      String name,
-      org.jooq.Field<F> field,
-      SearchFieldConditionProvider<F, org.jooq.Field<F>> searchFieldConditionProvider,
-      boolean orderable) {
-    fields.put(name, new Field<>(name, field, searchFieldConditionProvider, orderable));
-    return this;
-  }
-
-  public <F> TypedQuery<T, R, M> field(
-      org.jooq.Field<F> field,
-      SearchFieldConditionProvider<F, org.jooq.Field<F>> searchFieldConditionProvider,
-      boolean orderable) {
-    return field(field.getName().toLowerCase(), field, searchFieldConditionProvider, orderable);
-  }
-
-  public <F> TypedQuery<T, R, M> field(
-      FieldExtractor<T, F> extractor,
-      SearchFieldConditionProvider<F, org.jooq.Field<F>> searchFieldConditionProvider,
-      boolean orderable) {
-    return field(extractor.fieldFrom(table), searchFieldConditionProvider, orderable);
-  }
-
-  public <F> TypedQuery<T, R, M> field(
-      String name,
-      FieldExtractor<T, F> extractor,
-      SearchFieldConditionProvider<F, org.jooq.Field<F>> searchFieldConditionProvider,
-      boolean orderable) {
-    return field(name, extractor.fieldFrom(table), searchFieldConditionProvider, orderable);
+  protected void search(String query, SearchTableConditionProvider<T> conditionProvider) {
+    searches.put(query.toLowerCase(), (s) -> conditionProvider.search(s, table));
   }
 
   public TypedQuery<T, R, M> search(String query) {
@@ -151,14 +139,6 @@ public class TypedQuery<T extends Table<R>, R extends Record, M> implements Resu
     searchesToApply.add(query);
     return new TypedQuery<>(
         db, table, conditions, offset, limit, mapper, order, fields, searches, searchesToApply);
-  }
-
-  public TypedQuery<T, R, M> search(
-      String name, SearchTableConditionProvider<T> searchTableConditionProvider) {
-    searches.put(
-        name.toLowerCase(),
-        new TargetedSearch(name, s -> searchTableConditionProvider.search(s, table)));
-    return this;
   }
 
   public TypedQuery<T, R, M> where(ConditionProvider<T> conditionProvider) {
@@ -199,55 +179,91 @@ public class TypedQuery<T extends Table<R>, R extends Record, M> implements Resu
     return result.map(mapper);
   }
 
-  private List<Condition> getConditions() {
-    List<Condition> conditions = new ArrayList<>(this.conditions);
+  public Condition getConditions() {
+    List<Condition> searchConditions = new ArrayList<>(this.conditions);
     SearchParser searchParser = new SearchParser();
     for (String search : searchesToApply) {
-      List<Condition> groups = new ArrayList<>();
-      for (SearchTermGroup searchTermGroup : searchParser.parse(search)) {
-        List<Condition> group = new ArrayList<>();
-        for (SearchTerm term : searchTermGroup.getTerms()) {
-          if (term.getTarget() != null && !term.getTarget().isEmpty()) {
-            TargetedSearch searchConfiguration = searches.get(term.getTarget().toLowerCase());
-            if (searchConfiguration != null) {
-              Condition condition =
-                  searchConfiguration.getSearchConditionProvider().search(term.getValue());
-              if (condition != null) {
-                group.add(condition);
-              }
-              continue;
-            }
-            Field<?> targetedField = fields.get(term.getTarget().toLowerCase());
-            if (targetedField != null) {
-              Condition condition =
-                  targetedField.getSearchConditionProvider().search(term.getValue());
-              if (condition != null) {
-                group.add(condition);
-              }
-              continue;
-            }
-          }
-          List<Condition> fieldCondition = new ArrayList<>();
-          for (Field<?> field : fields.values()) {
-            SearchConditionProvider searchConditionProvider = field.getSearchConditionProvider();
-            if (searchConditionProvider != null) {
-              Condition condition = searchConditionProvider.search(term.getRawTerm());
-              if (condition != null) {
-                fieldCondition.add(condition);
+      try {
+        Condition termsCondition = null;
+        for (Term term : searchParser.parse(search)) {
+          SearchConditionProvider conditionProvider = null;
+          if (term.getTarget() != null) {
+            String target = term.getTarget().toLowerCase();
+            SearchConditionProvider targetedSearch = searches.get(target);
+            if (targetedSearch != null) {
+              conditionProvider = targetedSearch;
+            } else {
+              Field<?> field = fields.get(target);
+              if (field != null) {
+                conditionProvider = field.getSearch();
               }
             }
           }
-          if (!fieldCondition.isEmpty()) {
-            group.add(DSL.or(fieldCondition));
+
+          Condition termCondition = null;
+          for (TermValue value : term.getValues()) {
+            if (conditionProvider != null) {
+              Condition targetedSearchCondition = conditionProvider.search(value.getValue());
+              if (targetedSearchCondition == null) {
+                // Specifics don't apply, lets fall through to fields
+              } else if (termCondition == null) {
+                termCondition = targetedSearchCondition;
+                continue;
+              } else if (value.getConjunction() == Conjunction.AND) {
+                termCondition = DSL.and(termCondition, targetedSearchCondition);
+                continue;
+              } else {
+                termCondition = DSL.or(termCondition, targetedSearchCondition);
+                continue;
+              }
+            }
+
+            Condition fieldsCondition = null;
+            for (Field<?> field : fields.values()) {
+              SearchConditionProvider fieldSearch = field.getSearch();
+              if (fieldSearch == null) {
+                continue;
+              }
+              Condition fieldSearchCondition = fieldSearch.search(value.getValue());
+              if (fieldSearchCondition == null) {
+                continue;
+              }
+              if (fieldsCondition == null) {
+                fieldsCondition = fieldSearchCondition;
+              } else {
+                fieldsCondition = fieldsCondition.or(fieldSearchCondition);
+              }
+            }
+            termCondition =
+                mergeCondition(termCondition, fieldsCondition, value.getConjunction(), term);
           }
+
+          termsCondition =
+              mergeCondition(termsCondition, termCondition, term.getConjunction(), term);
         }
-        groups.add(DSL.and(group));
-      }
-      if (!groups.isEmpty()) {
-        conditions.add(DSL.or(groups));
+        if (termsCondition != null) {
+          searchConditions.add(termsCondition);
+        }
+      } catch (InvalidSearchStringException e) {
+        throw new SneakyInvalidSearchStringException(
+            "Invalid search while building conditions:" + e.getMessage(), e);
       }
     }
-    return conditions;
+    return DSL.and(searchConditions);
+  }
+
+  private Condition mergeCondition(
+      Condition termsCondition, Condition termCondition, Conjunction conjunction, Term term) {
+    if (termCondition == null) {
+      return termsCondition;
+    } else if (termsCondition == null) {
+      termsCondition = termCondition;
+    } else if (conjunction == Conjunction.AND) {
+      termsCondition = DSL.and(termsCondition, termCondition);
+    } else {
+      termsCondition = DSL.or(termsCondition, termCondition);
+    }
+    return termsCondition;
   }
 
   public SelectQuery<R> query() {
@@ -296,7 +312,7 @@ public class TypedQuery<T extends Table<R>, R extends Record, M> implements Resu
         columns.add(
             new Column(
                 field.getName(),
-                configuredField.getSearchConditionProvider() != null,
+                configuredField.getSearch() != null,
                 configuredField.isOrderable(),
                 order == null ? null : order.getOrder()));
       }

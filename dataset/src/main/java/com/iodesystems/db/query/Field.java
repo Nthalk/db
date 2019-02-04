@@ -7,21 +7,21 @@ public class Field<F> {
 
   private final String name;
   private final org.jooq.Field<F> field;
-  private final SearchConditionProvider searchConditionProvider;
+  private final SearchConditionProvider search;
   private final boolean orderable;
 
   public Field(
       String name,
       org.jooq.Field<F> field,
-      SearchFieldConditionProvider<F, org.jooq.Field<F>> searchFieldConditionProvider,
+      SearchFieldConditionProvider<F, org.jooq.Field<F>> search,
       boolean orderable) {
     this.name = name;
     this.field = field;
     this.orderable = orderable;
-    if (searchFieldConditionProvider == null) {
-      this.searchConditionProvider = null;
+    if (search == null) {
+      this.search = null;
     } else {
-      this.searchConditionProvider = search -> searchFieldConditionProvider.search(search, field);
+      this.search = s -> search.search(s, field);
     }
   }
 
@@ -33,8 +33,8 @@ public class Field<F> {
     return field;
   }
 
-  public SearchConditionProvider getSearchConditionProvider() {
-    return searchConditionProvider;
+  public SearchConditionProvider getSearch() {
+    return search;
   }
 
   public boolean isOrderable() {
