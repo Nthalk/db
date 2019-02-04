@@ -2,6 +2,7 @@ package com.iodesystems.db.search.model;
 
 import org.jooq.Condition;
 import org.jooq.Field;
+import org.jooq.impl.DSL;
 
 public class Search {
 
@@ -23,6 +24,14 @@ public class Search {
 
   public static Condition contains(String search, Field<String> field) {
     return field.contains(search);
+  }
+
+  public static Condition startsWithIgnoreCaseOrEmpty(String search, Field<String> field) {
+    if (search.isEmpty()) {
+      return DSL.trueCondition();
+    } else {
+      return field.lower().startsWith(search.toLowerCase());
+    }
   }
 
   public static Condition startsWithIgnoreCase(String search, Field<String> field) {
